@@ -1,6 +1,11 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
+
+const readFileAsync = promisify(fs.readFile);
+const readdirAsync = promisify(fs.readdir);
+const statAsync = promisify(fs.stat);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,13 +54,62 @@ app.get('/', (req, res) => {
   });
 });
 
-// Timeline view - organized by date
-app.get('/timeline', (req, res) => {
-  fs.readdir(CASTS_DIR, (err, files) => {
-    if (err) {
-      console.error('Error reading casts directory:', err);
-      return res.status(500).send('Error reading casts directory');
+// Helper function to extract recording duration from .cast file
+async function getRecordingDuration(filePath) {
+  try {
+    // Read first line to get header data
+    const data = await readFileAsync(filePath, 'utf8');
+    const lines = data.split('\n');
+    
+    if (lines.length < 2) {
+      return null;
     }
+    
+    const header = JSON.parse(lines[0]);
+    if (header.version === 2 && header.duration) {
+      return header.duration;
+    }
+    
+    // For version 2 files without duration in header, or version 1 files,
+    // we need to find the timestamp of the last event
+    let lastTimestamp = 0;
+    
+    // Sample a few lines from the end to find timestamps
+    const sampleLines = lines.slice(-100).filter(line => line.trim());
+    
+    for (const line of sampleLines) {
+      try {
+        const event = JSON.parse(line);
+        if (Array.isArray(event) && typeof event[0] === 'number') {
+          lastTimestamp = Math.max(lastTimestamp, event[0]);
+        }
+      } catch (e) {
+        // Skip lines that aren't valid JSON
+      }
+    }
+    
+    return lastTimestamp > 0 ? lastTimestamp : null;
+  } catch (e) {
+    console.error(`Error extracting duration from ${filePath}:`, e);
+    return null;
+  }
+}
+
+// Format duration in seconds to MM:SS
+function formatDuration(seconds) {
+  if (seconds === null || isNaN(seconds)) {
+    return '';
+  }
+  
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Timeline view - organized by date
+app.get('/timeline', async (req, res) => {
+  try {
+    const files = await readdirAsync(CASTS_DIR);
     
     // Filter only .cast files and sort by date (newest first)
     const castFiles = files
@@ -66,10 +120,16 @@ app.get('/timeline', (req, res) => {
     // Group recordings by date
     const recordingsByDate = {};
     
-    castFiles.forEach(filename => {
+    // Process each file to extract durations
+    for (const filename of castFiles) {
       const dateInfo = parseFilenameDate(filename);
       
       if (dateInfo) {
+        // Get file duration
+        const filePath = path.join(CASTS_DIR, filename);
+        const duration = await getRecordingDuration(filePath);
+        const durationFormatted = formatDuration(duration);
+        
         // If this date doesn't exist yet, create an array for it
         if (!recordingsByDate[dateInfo.date]) {
           recordingsByDate[dateInfo.date] = [];
@@ -79,11 +139,13 @@ app.get('/timeline', (req, res) => {
         recordingsByDate[dateInfo.date].push({
           filename,
           timeString: dateInfo.time.replace(/:/g, ':'),
-          dateObj: dateInfo.dateObj
+          dateObj: dateInfo.dateObj,
+          duration,
+          durationFormatted
         });
       }
       // Skip files that don't match our timestamp pattern
-    });
+    }
     
     // Sort recordings within each date by time
     Object.keys(recordingsByDate).forEach(date => {
@@ -115,7 +177,10 @@ app.get('/timeline', (req, res) => {
       formatDate,
       activeFile: req.query.file || null
     });
-  });
+  } catch (err) {
+    console.error('Error reading casts directory:', err);
+    return res.status(500).send('Error reading casts directory');
+  }
 });
 
 // Player route
