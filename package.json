@@ -1,0 +1,27 @@
+{
+  "name": "asciinema-player",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "asciinema",
+    "terminal",
+    "player"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Self-hosted asciinema player web app",
+  "dependencies": {
+    "@fontsource/fira-code": "^5.2.5",
+    "asciinema-player": "^3.9.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

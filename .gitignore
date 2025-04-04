@@ -1,0 +1,29 @@
+# Node.js dependencies
+node_modules/
+
+# Editor files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.*
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Recordings - you may want to track some example recordings but exclude most
+public/casts/*
+!public/casts/example.cast
