@@ -6,6 +6,7 @@
   <title>Playing: <%= filename %></title>
   <link rel="stylesheet" href="/asciinema-player/bundle/asciinema-player.css">
   <link rel="stylesheet" href="/node_modules/@fontsource/fira-code/index.css">
+  <link rel="stylesheet" href="/fonts/nerd-fonts.css">
   <style>
     
     body {
@@ -65,7 +66,7 @@
       AsciinemaPlayer.create('/casts/<%= filename %>', playerContainer, {
         autoPlay: true,
         preload: true,
-        terminalFontFamily: '"Fira Code", monospace',
+        terminalFontFamily: '"Fira Code Nerd Font", "Fira Code", monospace',
         terminalFontSize: '16px',
         terminalLineHeight: 1.4,
         theme: 'monokai'

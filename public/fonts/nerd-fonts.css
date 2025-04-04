@@ -1,0 +1,12 @@
+/* Nerd Fonts - Fira Code */
+@font-face {
+  font-family: 'Fira Code Nerd Font';
+  src: url('/fonts/FiraCodeNerdFont-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Set Fira Code Nerd Font as the default monospace font */
+.tag {
+  font-family: 'Fira Code Nerd Font', 'Fira Code', monospace;
+}
