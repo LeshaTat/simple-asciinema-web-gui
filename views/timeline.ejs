@@ -49,19 +49,19 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
     }
     
     .date-group {
       margin-bottom: 1.5rem;
     }
     
+    /* Date header styling */
     .date-header {
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-      padding-bottom: 0.25rem;
-      border-bottom: 1px solid #eee;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
       color: #333;
+      font-weight: normal;
     }
     
     .recording-list {
@@ -70,42 +70,45 @@
       margin: 0;
     }
     
+    /* Recording item styling */
     .recording-item {
-      padding: 0.5rem;
-      margin-bottom: 0.25rem;
+      background-color: #fff;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 0.5rem;
       border-radius: 4px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: normal;
     }
     
     .recording-item:hover {
-      background-color: #f0f0f0;
+      background-color: #f9f9f9;
     }
     
     .recording-item.active {
-      background-color: #e0e0e0;
+      background-color: #f0f0f0;
       font-weight: bold;
     }
     
+    /* Time display */
     .recording-time {
-      display: inline-block;
-      width: auto;
-      font-size: 1.1em;
+      font-size: 1.1rem;
     }
     
+    /* Duration display */
     .recording-duration {
-      float: right;
-      color: #777;
-      font-size: 0.9em;
-      background: #f0f0f0;
-      padding: 2px 6px;
-      border-radius: 3px;
-      margin-top: 2px;
+      font-size: 1.1rem;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      margin: 0;
+      float: none;
     }
     
     .player-container {
-      width: 90%;
-      max-width: 800px;
+      width: 100%;
       margin: 0 auto;
       border: 1px solid #ddd;
       border-radius: 4px;
