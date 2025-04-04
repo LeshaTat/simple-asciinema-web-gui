@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recording Timeline</title>
+  <link rel="stylesheet" href="/asciinema-player/bundle/asciinema-player.css">
+  <link rel="stylesheet" href="/node_modules/@fontsource/fira-code/index.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      background-color: #333;
+      color: white;
+      padding: 1rem;
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    
+    .container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+    }
+    
+    .sidebar {
+      width: 300px;
+      overflow-y: auto;
+      border-right: 1px solid #ddd;
+      background-color: white;
+      padding: 1rem;
+    }
+    
+    .content {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .date-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .date-header {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid #eee;
+      color: #333;
+    }
+    
+    .recording-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .recording-item {
+      padding: 0.5rem;
+      margin-bottom: 0.25rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .recording-item:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .recording-item.active {
+      background-color: #e0e0e0;
+      font-weight: bold;
+    }
+    
+    .recording-time {
+      display: inline-block;
+      width: 100%;
+      font-size: 1.1em;
+    }
+    
+    .player-container {
+      width: 90%;
+      max-width: 800px;
+      margin: 0 auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .back-link {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      background-color: #fff;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+    
+    .empty-state {
+      color: #666;
+      text-align: center;
+    }
+    
+    .nav-links {
+      margin-top: 2rem;
+    }
+    
+    .nav-links a {
+      display: inline-block;
+      margin-right: 1rem;
+      color: #666;
+      text-decoration: none;
+    }
+    
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Terminal Recording Timeline</h1>
+  </header>
+  
+  <div class="container">
+    <div class="sidebar">
+      <% if (Object.keys(recordingsByDate).length === 0) { %>
+        <div class="empty-state">No recordings found</div>
+      <% } else { %>
+        <% Object.keys(recordingsByDate).sort().reverse().forEach(date => { %>
+          <div class="date-group">
+            <div class="date-header"><%= formatDate(date) %></div>
+            <ul class="recording-list">
+              <% recordingsByDate[date].forEach(recording => { %>
+                <li 
+                  class="recording-item <%= recording.filename === activeFile ? 'active' : '' %>" 
+                  data-filename="<%= recording.filename %>"
+                  onclick="loadRecording('<%= recording.filename %>')">
+                  <span class="recording-time"><%= recording.timeString %></span>
+                </li>
+              <% }); %>
+            </ul>
+          </div>
+        <% }); %>
+      <% } %>
+      
+      <div class="nav-links">
+        <a href="/">Home</a>
+      </div>
+    </div>
+    
+    <div class="content">
+      <div class="player-container" id="player-container">
+        <% if (!activeFile) { %>
+          <div class="empty-state">Select a recording to play</div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/asciinema-player/bundle/asciinema-player.min.js"></script>
+  <script>
+    // Initialize player
+    let player = null;
+    
+    function loadRecording(filename) {
+      // Update active state in sidebar
+      document.querySelectorAll('.recording-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`.recording-item[data-filename="${filename}"]`).classList.add('active');
+      
+      // Update URL without reloading page
+      window.history.pushState({}, '', `/timeline?file=${filename}`);
+      
+      // Clear any existing player
+      const container = document.getElementById('player-container');
+      container.innerHTML = '';
+      
+      if (player) {
+        player.dispose();
+        player = null;
+      }
+      
+      // Create new player
+      player = AsciinemaPlayer.create(`/casts/${filename}`, container, {
+        autoPlay: true,
+        preload: true,
+        terminalFontFamily: '"Fira Code", monospace',
+        terminalFontSize: '16px',
+        terminalLineHeight: 1.4,
+        theme: 'monokai'
+      });
+    }
+    
+    // Load active file if one is selected
+    <% if (activeFile) { %>
+      document.addEventListener('DOMContentLoaded', function() {
+        loadRecording('<%= activeFile %>');
+      });
+    <% } %>
+  </script>
+</body>
+</html>

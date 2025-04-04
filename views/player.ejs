@@ -52,7 +52,10 @@
     <div id="player-container"></div>
   </div>
   
-  <a href="/" class="back-link">Back to List</a>
+  <div>
+    <a href="/" class="back-link">Home</a>
+    <a href="/timeline" class="back-link" style="margin-left: 10px;">Timeline</a>
+  </div>
   
   <script src="/asciinema-player/bundle/asciinema-player.min.js"></script>
   <script>
@@ -65,12 +68,7 @@
         terminalFontFamily: '"Fira Code", monospace',
         terminalFontSize: '16px',
         terminalLineHeight: 1.4,
-/*        theme: {
-          background: '#282c33',
-          foreground: '#f8f8f2',
-          selection: '#44475a',
-          cursor: '#f8f8f2'
-        }*/
+        theme: 'monokai'
       });
     });
   </script>
