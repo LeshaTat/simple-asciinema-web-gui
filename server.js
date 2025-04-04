@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+const { parseFilenameDate } = require('./utils/parseFilename');
 
 const readFileAsync = promisify(fs.readFile);
 const readdirAsync = promisify(fs.readdir);
@@ -10,20 +11,6 @@ const statAsync = promisify(fs.stat);
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CASTS_DIR = path.join(__dirname, 'public', 'casts');
-
-// Helper functions to parse filenames
-function parseFilenameDate(filename) {
-  // Match pattern like asciinema_2025-04-04_13-56-53.cast
-  const match = filename.match(/asciinema_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.cast/);
-  if (match) {
-    return {
-      date: match[1],
-      time: match[2].replace(/-/g, ':'),
-      dateObj: new Date(`${match[1]}T${match[2].replace(/-/g, ':')}`)
-    };
-  }
-  return null;
-}
 
 // Set view engine
 app.set('view engine', 'ejs');
@@ -141,7 +128,9 @@ app.get('/timeline', async (req, res) => {
           timeString: dateInfo.time.replace(/:/g, ':'),
           dateObj: dateInfo.dateObj,
           duration,
-          durationFormatted
+          durationFormatted,
+          tags: dateInfo.tags || [],
+          tagsString: dateInfo.tagsString || ''
         });
       }
       // Skip files that don't match our timestamp pattern

@@ -73,13 +73,13 @@
     /* Recording item styling */
     .recording-item {
       background-color: #fff;
-      padding: 0.75rem 1.25rem;
+      padding: 0.85rem 1.25rem;
       margin-bottom: 0.5rem;
       border-radius: 4px;
       cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 75px 1fr 75px;
+      align-items: flex-start;
       font-weight: normal;
     }
     
@@ -95,6 +95,32 @@
     /* Time display */
     .recording-time {
       font-size: 1.1rem;
+      justify-self: start;
+    }
+    
+    /* Tags container */
+    .recording-tags-container {
+      justify-self: center;
+      width: 100%;
+      text-align: center;
+      padding: 0 8px;
+    }
+    
+    /* Tags display */
+    .recording-tags {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+    }
+    
+    .tag {
+      background-color: #e9f5ff;
+      color: #0366d6;
+      font-size: 0.8rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
     }
     
     /* Duration display */
@@ -105,6 +131,7 @@
       border-radius: 0;
       margin: 0;
       float: none;
+      justify-self: end;
     }
     
     .player-container {
@@ -167,7 +194,16 @@
                   class="recording-item <%= recording.filename === activeFile ? 'active' : '' %>" 
                   data-filename="<%= recording.filename %>"
                   onclick="loadRecording('<%= recording.filename %>')">
-                  <span class="recording-time"><%= recording.timeString %></span>
+                  <span class="recording-time"><%= recording.timeString.substring(0, 5) %></span>
+                  <div class="recording-tags-container">
+                    <% if (recording.tags && recording.tags.length > 0) { %>
+                      <span class="recording-tags">
+                        <% recording.tags.forEach(tag => { %>
+                          <span class="tag"><%= tag %></span>
+                        <% }); %>
+                      </span>
+                    <% } %>
+                  </div>
                   <% if (recording.durationFormatted) { %>
                     <span class="recording-duration"><%= recording.durationFormatted %></span>
                   <% } %>
