@@ -229,6 +229,7 @@
     </div>
   </div>
   
+  <script src="/js/asciinema-player.js"></script>
   <script src="/asciinema-player/bundle/asciinema-player.min.js"></script>
   <script>
     // Initialize player
@@ -236,31 +237,15 @@
     
     function loadRecording(filename) {
       // Update active state in sidebar
-      document.querySelectorAll('.recording-item').forEach(item => {
-        item.classList.remove('active');
-      });
-      document.querySelector(`.recording-item[data-filename="${filename}"]`).classList.add('active');
+      window.asciinemaPlayer.updateActive(filename);
       
-      // Update URL without reloading page
-      window.history.pushState({}, '', `/timeline?file=${filename}`);
+      // Set initial line height for timeline view
+      window.asciinemaSettings = window.asciinemaSettings || {};
+      window.asciinemaSettings.baseLineHeight = 1.9;  // Timeline view uses a taller line height
       
-      // Clear any existing player
-      const container = document.getElementById('player-container');
-      container.innerHTML = '';
-      
-      if (player) {
-        player.dispose();
-        player = null;
-      }
-      
-      // Create new player
-      player = AsciinemaPlayer.create(`/casts/${filename}`, container, {
-        autoPlay: true,
-        preload: true,
-        terminalFontFamily: '"Fira Code Nerd Font", "Fira Code", monospace',
-        terminalFontSize: '16px',
-        terminalLineHeight: 1.9,
-        theme: 'monokai'
+      // Load the player
+      player = window.asciinemaPlayer.load(filename, 'player-container', {
+        terminalLineHeight: window.asciinemaSettings.baseLineHeight
       });
     }
     
