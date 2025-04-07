@@ -13,7 +13,7 @@ window.asciinemaSettings = {
   lineHeightStep: 0.1,
   currentLineHeight: 1.4, // Will be updated during adjustment
   adjustmentAttempts: 0,
-  maxAdjustmentAttempts: 3
+  maxAdjustmentAttempts: 10
 };
 
 /**
