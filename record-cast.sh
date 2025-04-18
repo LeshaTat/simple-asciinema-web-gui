@@ -23,9 +23,14 @@ if [ -n "$TAGS" ]; then
 fi
 
 # Start recording with asciinema using tmux attach
-asciinema rec "$CAST_FILE" -c "tmux attach"
+asciinema rec "$CAST_FILE" -c "tmux attach || tmux"
 
 # Stop timewarrior tracking when recording ends
 if [ -n "$TAGS" ]; then
   timew stop
 fi
+
+# Run the maintenance script to compress older recordings
+# (but not the one we just created, as it's the newest)
+echo "Running maintenance on older recordings..."
+npm --prefix "$(dirname "$0")" run maintain

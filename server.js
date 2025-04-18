@@ -7,10 +7,12 @@ const { parseFilenameDate } = require('./utils/parseFilename');
 const readFileAsync = promisify(fs.readFile);
 const readdirAsync = promisify(fs.readdir);
 const statAsync = promisify(fs.stat);
+const accessAsync = promisify(fs.access);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CASTS_DIR = path.join(__dirname, 'public', 'casts');
+const ZIP_DIR = path.join(CASTS_DIR, 'zip');
 
 // Set view engine
 app.set('view engine', 'ejs');
@@ -26,19 +28,92 @@ app.use('/asciinema-player', express.static(
   path.join(__dirname, 'node_modules', 'asciinema-player', 'dist')
 ));
 
-// Main route - list of cast files
-app.get('/', (req, res) => {
-  fs.readdir(CASTS_DIR, (err, files) => {
-    if (err) {
-      console.error('Error reading casts directory:', err);
-      return res.status(500).send('Error reading casts directory');
+// Helper function to get info file data
+async function getInfoFileData(castFilename) {
+  try {
+    const infoFilePath = path.join(ZIP_DIR, `${castFilename}.gz.info`);
+    const infoData = await readFileAsync(infoFilePath, 'utf8');
+    return JSON.parse(infoData);
+  } catch (err) {
+    return null;
+  }
+}
+
+// Helper function to get cast files with exactly: filename, duration, tags, and date
+async function getCastFilesWithInfo() {
+  try {
+    // Get list of all cast files from main directory
+    const mainDirFiles = await readdirAsync(CASTS_DIR);
+    const mainDirCastFiles = mainDirFiles
+      .filter(file => file.endsWith('.cast') && file !== 'zip');  // Exclude 'zip' directory itself
+    
+    // Get all info files from zip directory
+    let zipFiles = [];
+    try {
+      const zipDirFiles = await readdirAsync(ZIP_DIR);
+      zipFiles = zipDirFiles
+        .filter(file => file.endsWith('.gz.info'))
+        .map(file => file.slice(0, -8)); // Remove .gz.info to get original filename
+    } catch (err) {
+      console.log('Zip directory not accessible:', err.message);
     }
     
-    // Filter only .cast files
-    const castFiles = files.filter(file => file.endsWith('.cast'));
+    // Combine file lists (original files + files that only exist in zip directory)
+    const uniqueFilenames = new Set([...mainDirCastFiles, ...zipFiles]);
     
-    res.render('index', { castFiles });
-  });
+    // Process each file to collect specified info
+    const results = [];
+    
+    for (const filename of uniqueFilenames) {
+      // Get date info from filename
+      const dateInfo = parseFilenameDate(filename);
+      
+      // Skip files that don't match our timestamp pattern
+      if (!dateInfo) continue;
+      
+      // Get duration from info file or by parsing the cast file
+      let duration = null;
+      const infoData = await getInfoFileData(filename);
+      
+      if (infoData && typeof infoData.duration === 'number') {
+        duration = infoData.duration;
+      } else {
+        // Fallback to extracting from the original file if it exists
+        const filePath = path.join(CASTS_DIR, filename);
+        try {
+          await accessAsync(filePath, fs.constants.F_OK);
+          duration = await getRecordingDuration(filePath);
+        } catch (err) {
+          // File doesn't exist in the original directory, can't get duration
+          console.error(`File access error for ${filePath}:`, err);
+        }
+      }
+      
+      // Add to results with only the specified info
+      results.push({
+        filename,
+        duration,
+        tags: dateInfo.tags || [],
+        date: dateInfo.date
+      });
+    }
+    
+    return results;
+  } catch (err) {
+    console.error('Error gathering cast files info:', err);
+    return [];
+  }
+}
+
+// Main route - list of cast files
+app.get('/', async (req, res) => {
+  try {
+    const castFilesInfo = await getCastFilesWithInfo();
+    res.render('index', { castFiles: castFilesInfo });
+  } catch (err) {
+    console.error('Error reading casts information:', err);
+    return res.status(500).send('Error reading casts information');
+  }
 });
 
 // Helper function to extract recording duration from .cast file
@@ -96,44 +171,32 @@ function formatDuration(seconds) {
 // Timeline view - organized by date
 app.get('/timeline', async (req, res) => {
   try {
-    const files = await readdirAsync(CASTS_DIR);
-    
-    // Filter only .cast files and sort by date (newest first)
-    const castFiles = files
-      .filter(file => file.endsWith('.cast'))
-      .sort()
-      .reverse();
+    // Get all cast files with their info
+    const castFilesInfo = await getCastFilesWithInfo();
     
     // Group recordings by date
     const recordingsByDate = {};
     
-    // Process each file to extract durations
-    for (const filename of castFiles) {
-      const dateInfo = parseFilenameDate(filename);
+    // Process each file
+    for (const fileInfo of castFilesInfo) {
+      const dateInfo = parseFilenameDate(fileInfo.filename);
+      const durationFormatted = formatDuration(fileInfo.duration);
       
-      if (dateInfo) {
-        // Get file duration
-        const filePath = path.join(CASTS_DIR, filename);
-        const duration = await getRecordingDuration(filePath);
-        const durationFormatted = formatDuration(duration);
-        
-        // If this date doesn't exist yet, create an array for it
-        if (!recordingsByDate[dateInfo.date]) {
-          recordingsByDate[dateInfo.date] = [];
-        }
-        
-        // Add this recording to its date
-        recordingsByDate[dateInfo.date].push({
-          filename,
-          timeString: dateInfo.time.replace(/:/g, ':'),
-          dateObj: dateInfo.dateObj,
-          duration,
-          durationFormatted,
-          tags: dateInfo.tags || [],
-          tagsString: dateInfo.tagsString || ''
-        });
+      // If this date doesn't exist yet, create an array for it
+      if (!recordingsByDate[fileInfo.date]) {
+        recordingsByDate[fileInfo.date] = [];
       }
-      // Skip files that don't match our timestamp pattern
+      
+      // Add this recording to its date group
+      recordingsByDate[fileInfo.date].push({
+        filename: fileInfo.filename,
+        timeString: dateInfo.time.replace(/:/g, ':'),
+        dateObj: dateInfo.dateObj,
+        duration: fileInfo.duration,
+        durationFormatted,
+        tags: fileInfo.tags,
+        tagsString: fileInfo.tags.join(', ')
+      });
     }
     
     // Sort recordings within each date by time
@@ -170,6 +233,33 @@ app.get('/timeline', async (req, res) => {
     console.error('Error reading casts directory:', err);
     return res.status(500).send('Error reading casts directory');
   }
+});
+
+// Serve gzipped cast files with appropriate headers
+app.get('/casts/:filename', (req, res) => {
+  const filename = req.params.filename;
+  
+  // Validate filename to prevent directory traversal
+  if (!filename.match(/^[a-zA-Z0-9_\-\.]+\.cast$/)) {
+    return res.status(400).send('Invalid filename');
+  }
+  
+  // Check if we have a gzipped version
+  const zipFilePath = path.join(ZIP_DIR, `${filename}.gz`);
+  const originalFilePath = path.join(CASTS_DIR, filename);
+  
+  fs.access(zipFilePath, fs.constants.F_OK, (err) => {
+    if (!err) {
+      // Gzipped version exists
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Content-Type', 'application/octet-stream');
+      fs.createReadStream(zipFilePath).pipe(res);
+    } else {
+      // Fall back to original file
+      res.setHeader('Content-Type', 'application/octet-stream');
+      fs.createReadStream(originalFilePath).pipe(res);
+    }
+  });
 });
 
 // Player route

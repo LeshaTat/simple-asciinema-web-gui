@@ -55,8 +55,14 @@
     <ul>
       <% castFiles.forEach(file => { %>
         <li>
-          <a href="/play/<%= file %>">
-            <%= file %>
+          <a href="/play/<%= file.filename %>">
+            <%= file.filename %> 
+            <% if (file.duration) { %>
+              (<%= Math.floor(file.duration / 60) %>:<%= Math.floor(file.duration % 60).toString().padStart(2, '0') %>)
+            <% } %>
+            <% if (file.tags && file.tags.length > 0) { %>
+              - <%= file.tags.join(', ') %>
+            <% } %>
           </a>
         </li>
       <% }); %>
