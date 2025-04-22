@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
 const { parseFilenameDate } = require('./utils/parseFilename');
+const { searchCasts, getIndexStats } = require('./utils/indexer');
 
 const readFileAsync = promisify(fs.readFile);
 const readdirAsync = promisify(fs.readdir);
@@ -27,6 +28,9 @@ app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
 app.use('/asciinema-player', express.static(
   path.join(__dirname, 'node_modules', 'asciinema-player', 'dist')
 ));
+
+// Add body parser for API routes
+app.use(express.json());
 
 // Helper function to get info file data
 async function getInfoFileData(castFilename) {
@@ -168,6 +172,28 @@ function formatDuration(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+// Search page
+app.get('/search', async (req, res) => {
+  try {
+    // Get all unique tags from cast files
+    const castFilesInfo = await getCastFilesWithInfo();
+    const allTags = new Set();
+    
+    castFilesInfo.forEach(fileInfo => {
+      if (fileInfo.tags && Array.isArray(fileInfo.tags)) {
+        fileInfo.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+    
+    res.render('search', { 
+      availableTags: Array.from(allTags).sort()
+    });
+  } catch (err) {
+    console.error('Error preparing search page:', err);
+    return res.status(500).send('Error preparing search page');
+  }
+});
+
 // Timeline view - organized by date
 app.get('/timeline', async (req, res) => {
   try {
@@ -270,7 +296,65 @@ app.get('/play/:filename', (req, res) => {
     return res.status(400).send('Invalid filename');
   }
   
-  res.render('player', { filename });
+  // Get timestamp parameter for jumping to a specific point
+  const startAt = req.query.t ? parseFloat(req.query.t) : null;
+  
+  res.render('player', { filename, startAt });
+});
+
+// Search API endpoint
+app.post('/api/search', async (req, res) => {
+  try {
+    const { query, tags, dateFrom, dateTo, limit, timeWindow } = req.body;
+    
+    if (!query || typeof query !== 'string' || query.length < 1) {
+      return res.status(400).json({ error: 'Valid search query is required' });
+    }
+    
+    const options = { 
+      tags: Array.isArray(tags) ? tags : [],
+      dateFrom,
+      dateTo,
+      limit: limit || 50,
+      timeWindow: timeWindow || 10 // Default to 10 minutes if not specified
+    };
+    
+    const results = await searchCasts(query, options);
+    
+    // Format results with additional contextual information
+    const formattedResults = results.map(result => {
+      return {
+        snippet: result.snippet,
+        filename: result.filename,
+        date: result.date,
+        time: result.time,
+        timeOffset: result.time_offset ? Math.floor(result.time_offset) : 0,
+        timeFormatted: formatDuration(result.time_offset),
+        tags: result.tags ? result.tags.split(', ') : [],
+        playUrl: `/play/${result.filename}?t=${Math.floor(result.time_offset || 0)}`
+      };
+    });
+    
+    res.json({
+      query,
+      count: results.length,
+      results: formattedResults
+    });
+  } catch (err) {
+    console.error('Search error:', err);
+    res.status(500).json({ error: 'An error occurred during search' });
+  }
+});
+
+// Index stats API endpoint
+app.get('/api/index/stats', async (req, res) => {
+  try {
+    const stats = await getIndexStats();
+    res.json(stats);
+  } catch (err) {
+    console.error('Error getting index stats:', err);
+    res.status(500).json({ error: 'Failed to retrieve index statistics' });
+  }
 });
 
 // Start server

@@ -66,6 +66,9 @@
       AsciinemaPlayer.create('/casts/<%= filename %>', playerContainer, {
         autoPlay: true,
         preload: true,
+        <% if (typeof startAt === 'number') { %>
+        startAt: <%= startAt %>,
+        <% } %>
         terminalFontFamily: '"Fira Code Nerd Font", "Fira Code", monospace',
         terminalFontSize: '16px',
         terminalLineHeight: 1.4,

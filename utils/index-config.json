@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "indexStrategies": [
+    {
+      "id": "basic",
+      "name": "Basic Indexing",
+      "version": "1.0.0",
+      "description": "Basic indexing with FTS5 for cast files after stripping colors"
+    }
+  ],
+  "currentStrategies": ["basic"]
+}
