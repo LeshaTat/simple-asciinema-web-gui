@@ -63,7 +63,9 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Create the player
       const playerContainer = document.getElementById('player-container');
-      AsciinemaPlayer.create('/casts/<%= filename %>', playerContainer, {
+      
+      // Always start with autoPlay for proper loading
+      const player = AsciinemaPlayer.create('/casts/<%= filename %>', playerContainer, {
         autoPlay: true,
         preload: true,
         <% if (typeof startAt === 'number') { %>
@@ -74,6 +76,24 @@
         terminalLineHeight: 1.4,
         theme: 'monokai'
       });
+      
+      <% if (typeof startAt === 'number') { %>
+      // When using a specific timestamp, manually pause after a short delay
+      // to ensure proper loading and seeking
+      setTimeout(() => {
+        // Pause the player when starting at specific time
+        if (player && typeof player.pause === 'function') {
+          // First check if there's a seek function to ensure precise positioning
+          if (typeof player.seek === 'function') {
+            // Seek to the exact timestamp with full precision
+            player.seek(<%= startAt %>);
+          }
+          // Then pause the player
+          player.pause();
+          console.log('Player paused at precise timestamp <%= startAt %>');
+        }
+      }, 200);
+      <% } %>
     });
   </script>
 </body>

@@ -305,21 +305,27 @@ app.get('/play/:filename', (req, res) => {
 // Search API endpoint
 app.post('/api/search', async (req, res) => {
   try {
-    const { query, tags, dateFrom, dateTo, limit, timeWindow } = req.body;
+    const { query, tags, dateFrom, dateTo, limit, timeWindow, page } = req.body;
     
     if (!query || typeof query !== 'string' || query.length < 1) {
       return res.status(400).json({ error: 'Valid search query is required' });
     }
     
+    // Calculate offset for pagination
+    const currentPage = parseInt(page, 10) || 1;
+    const resultsPerPage = parseInt(limit, 10) || 50;
+    const offset = (currentPage - 1) * resultsPerPage;
+    
     const options = { 
       tags: Array.isArray(tags) ? tags : [],
       dateFrom,
       dateTo,
-      limit: limit || 50,
+      limit: resultsPerPage,
+      offset,
       timeWindow: timeWindow || 10 // Default to 10 minutes if not specified
     };
     
-    const results = await searchCasts(query, options);
+    const { results, total } = await searchCasts(query, options);
     
     // Format results with additional contextual information
     const formattedResults = results.map(result => {
@@ -328,15 +334,23 @@ app.post('/api/search', async (req, res) => {
         filename: result.filename,
         date: result.date,
         time: result.time,
-        timeOffset: result.time_offset ? Math.floor(result.time_offset) : 0,
+        timeOffset: result.time_offset || 0,
         timeFormatted: formatDuration(result.time_offset),
         tags: result.tags ? result.tags.split(', ') : [],
-        playUrl: `/play/${result.filename}?t=${Math.floor(result.time_offset || 0)}`
+        playUrl: `/play/${result.filename}?t=${result.time_offset || 0}`
       };
     });
     
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / resultsPerPage);
+    const hasMore = currentPage < totalPages;
+    
     res.json({
       query,
+      page: currentPage,
+      totalPages,
+      hasMore,
+      totalCount: total,
       count: results.length,
       results: formattedResults
     });

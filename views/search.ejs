@@ -113,6 +113,35 @@
       text-decoration: none;
       color: #4285f4;
     }
+    
+    /* Pagination styles */
+    .pagination {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .pagination span {
+      margin-right: 15px;
+      color: #666;
+    }
+    .page-btn {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .page-btn:hover {
+      background-color: #3367d6;
+    }
+    .page-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -144,9 +173,22 @@
           <br>
           <small style="color: #666;">Group results by time window</small>
         </div>
+        
+        <div style="display: inline-block; vertical-align: top; margin-left: 15px;">
+          <label for="pageSize">Results Per Page:</label>
+          <select id="pageSize" style="width: 70px;">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
       </div>
       
       <button type="submit">Search</button>
+      
+      <!-- Hidden field to track current page -->
+      <input type="hidden" id="currentPage" value="1">
     </form>
   </div>
   
@@ -171,7 +213,7 @@
       // Handle form submission
       searchForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        performSearch();
+        performSearch(true); // Reset to page 1 on new search
       });
       
       function fetchIndexStats() {
@@ -200,9 +242,14 @@
           });
       }
       
-      function performSearch() {
+      function performSearch(resetPage) {
         const query = document.getElementById('searchQuery').value.trim();
         if (!query) return;
+        
+        // Reset to page 1 for new searches
+        if (resetPage) {
+            document.getElementById('currentPage').value = 1;
+        }
         
         const tagSelect = document.getElementById('tagFilter');
         const selectedTags = Array.from(tagSelect.selectedOptions).map(option => option.value).filter(Boolean);
@@ -225,7 +272,8 @@
             dateFrom: dateFrom || null,
             dateTo: dateTo || null,
             timeWindow: parseInt(document.getElementById('timeWindow').value, 10) || 10,
-            limit: 50
+            limit: parseInt(document.getElementById('pageSize').value, 10) || 50,
+            page: parseInt(document.getElementById('currentPage').value, 10) || 1
           })
         })
         .then(response => response.json())
@@ -240,9 +288,12 @@
             return;
           }
           
-          // Display results
-          let resultsHtml = `<h2>Results (${data.count})</h2>`;
+          // Display results with correct result range
+          const startIndex = (data.page - 1) * parseInt(document.getElementById('pageSize').value);
+          const endIndex = startIndex + data.count;
+          let resultsHtml = `<h2>Results (${startIndex + 1}-${endIndex} of ${data.totalCount} matches)</h2>`;
           
+          // Add the results
           data.results.forEach(result => {
             const date = result.date ? new Date(result.date).toLocaleDateString() : 'Unknown';
             const time = result.time || '';
@@ -262,7 +313,42 @@
             `;
           });
           
+          // Add pagination controls if needed
+          if (data.totalPages > 1) {
+            const currentPage = data.page;
+            const totalPages = data.totalPages;
+            
+            resultsHtml += `<div class="pagination">`;
+            resultsHtml += `<span>Page ${currentPage} of ${totalPages}</span>`;
+            
+            // Previous page button
+            if (currentPage > 1) {
+              resultsHtml += `<button class="page-btn prev-btn" data-page="${currentPage - 1}">← Previous</button>`;
+            } else {
+              resultsHtml += `<button class="page-btn prev-btn" disabled>← Previous</button>`;
+            }
+            
+            // Next page button
+            if (data.hasMore) {
+              resultsHtml += `<button class="page-btn next-btn" data-page="${currentPage + 1}">Next →</button>`;
+            } else {
+              resultsHtml += `<button class="page-btn next-btn" disabled>Next →</button>`;
+            }
+            
+            resultsHtml += `</div>`;
+          }
+          
           searchResults.innerHTML = resultsHtml;
+          
+          // Add event listeners to pagination buttons
+          document.querySelectorAll('.page-btn').forEach(button => {
+            button.addEventListener('click', function() {
+              const page = this.getAttribute('data-page');
+              document.getElementById('currentPage').value = page;
+              // Re-run the search with the new page
+              performSearch();
+            });
+          });
         })
         .catch(error => {
           console.error('Search error:', error);
