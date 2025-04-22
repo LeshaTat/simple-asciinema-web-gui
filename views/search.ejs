@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Cast Files</title>
+  <link rel="stylesheet" href="/node_modules/@fontsource/fira-code/index.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    .search-form {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .search-form input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .search-form select {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .search-form button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .search-form button:hover {
+      background-color: #3367d6;
+    }
+    .results {
+      margin-top: 20px;
+    }
+    .result-card {
+      background-color: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .result-card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    .result-card .meta {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .result-card .snippet {
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
+    .result-card .tag {
+      display: inline-block;
+      background-color: #eee;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 6px;
+    }
+    .result-card .play-link {
+      display: inline-block;
+      background-color: #34a853;
+      color: white;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .result-card .play-link:hover {
+      background-color: #1e8e3e;
+    }
+    .stats {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .nav-links {
+      margin-top: 20px;
+    }
+    .nav-links a {
+      display: inline-block;
+      margin-right: 10px;
+      text-decoration: none;
+      color: #4285f4;
+    }
+    
+    /* Pagination styles */
+    .pagination {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .pagination span {
+      margin-right: 15px;
+      color: #666;
+    }
+    .page-btn {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .page-btn:hover {
+      background-color: #3367d6;
+    }
+    .page-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Search Cast Files</h1>
+  
+  <div class="search-form">
+    <form id="searchForm">
+      <input type="text" id="searchQuery" placeholder="Search query (e.g. git commit, npm install)" required>
+      
+      <div style="margin-top: 10px; margin-bottom: 10px;">
+        <select id="tagFilter" multiple style="height: 80px; width: 200px;">
+          <option value="">-- Select Tags --</option>
+          <% availableTags.forEach(tag => { %>
+            <option value="<%= tag %>"><%= tag %></option>
+          <% }); %>
+        </select>
+        
+        <div style="display: inline-block; vertical-align: top; margin-right: 15px;">
+          <label for="dateFrom">From:</label>
+          <input type="date" id="dateFrom">
+          <br>
+          <label for="dateTo">To:</label>
+          <input type="date" id="dateTo">
+        </div>
+        
+        <div style="display: inline-block; vertical-align: top;">
+          <label for="timeWindow">Time Window (minutes):</label>
+          <input type="number" id="timeWindow" min="1" max="60" value="10" style="width: 60px;">
+          <br>
+          <small style="color: #666;">Group results by time window</small>
+        </div>
+        
+        <div style="display: inline-block; vertical-align: top; margin-left: 15px;">
+          <label for="pageSize">Results Per Page:</label>
+          <select id="pageSize" style="width: 70px;">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+      
+      <button type="submit">Search</button>
+      
+      <!-- Hidden field to track current page -->
+      <input type="hidden" id="currentPage" value="1">
+    </form>
+  </div>
+  
+  <div id="indexStats" class="stats"></div>
+  
+  <div id="searchResults" class="results"></div>
+  
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/timeline">Timeline</a>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchForm = document.getElementById('searchForm');
+      const searchResults = document.getElementById('searchResults');
+      const indexStats = document.getElementById('indexStats');
+      
+      // Load index stats on page load
+      fetchIndexStats();
+      
+      // Handle form submission
+      searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearch(true); // Reset to page 1 on new search
+      });
+      
+      function fetchIndexStats() {
+        fetch('/api/index/stats')
+          .then(response => response.json())
+          .then(stats => {
+            let statsHtml = `
+              <strong>Index Stats:</strong> 
+              ${stats.indexedFiles} files indexed out of ${stats.totalFiles} total files
+            `;
+            
+            if (Object.keys(stats.strategies).length > 0) {
+              statsHtml += ' | Strategies: ';
+              Object.keys(stats.strategies).forEach(strategyId => {
+                const strategy = stats.strategies[strategyId];
+                statsHtml += `${strategyId} (${strategy.version}): ${strategy.count} files, `;
+              });
+              statsHtml = statsHtml.slice(0, -2); // Remove trailing comma
+            }
+            
+            indexStats.innerHTML = statsHtml;
+          })
+          .catch(error => {
+            console.error('Error fetching index stats:', error);
+            indexStats.innerHTML = 'Error loading index statistics';
+          });
+      }
+      
+      function performSearch(resetPage) {
+        const query = document.getElementById('searchQuery').value.trim();
+        if (!query) return;
+        
+        // Reset to page 1 for new searches
+        if (resetPage) {
+            document.getElementById('currentPage').value = 1;
+        }
+        
+        const tagSelect = document.getElementById('tagFilter');
+        const selectedTags = Array.from(tagSelect.selectedOptions).map(option => option.value).filter(Boolean);
+        
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        
+        // Show loading indicator
+        searchResults.innerHTML = '<p>Searching...</p>';
+        
+        // Perform the search request
+        fetch('/api/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query,
+            tags: selectedTags,
+            dateFrom: dateFrom || null,
+            dateTo: dateTo || null,
+            timeWindow: parseInt(document.getElementById('timeWindow').value, 10) || 10,
+            limit: parseInt(document.getElementById('pageSize').value, 10) || 50,
+            page: parseInt(document.getElementById('currentPage').value, 10) || 1
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            searchResults.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+            return;
+          }
+          
+          if (data.results.length === 0) {
+            searchResults.innerHTML = '<p>No results found.</p>';
+            return;
+          }
+          
+          // Display results with correct result range
+          const startIndex = (data.page - 1) * parseInt(document.getElementById('pageSize').value);
+          const endIndex = startIndex + data.count;
+          let resultsHtml = `<h2>Results (${startIndex + 1}-${endIndex} of ${data.totalCount} matches)</h2>`;
+          
+          // Add the results
+          data.results.forEach(result => {
+            const date = result.date ? new Date(result.date).toLocaleDateString() : 'Unknown';
+            const time = result.time || '';
+            
+            resultsHtml += `
+              <div class="result-card">
+                <h3>${result.filename}</h3>
+                <div class="meta">
+                  Recorded: ${date} ${time} | Time offset: ${result.timeFormatted || '0:00'}
+                </div>
+                <div class="snippet">${escapeHtml(result.snippet)}</div>
+                <div>
+                  ${result.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+                <a href="${result.playUrl}" class="play-link">Play at this point</a>
+              </div>
+            `;
+          });
+          
+          // Add pagination controls if needed
+          if (data.totalPages > 1) {
+            const currentPage = data.page;
+            const totalPages = data.totalPages;
+            
+            resultsHtml += `<div class="pagination">`;
+            resultsHtml += `<span>Page ${currentPage} of ${totalPages}</span>`;
+            
+            // Previous page button
+            if (currentPage > 1) {
+              resultsHtml += `<button class="page-btn prev-btn" data-page="${currentPage - 1}">← Previous</button>`;
+            } else {
+              resultsHtml += `<button class="page-btn prev-btn" disabled>← Previous</button>`;
+            }
+            
+            // Next page button
+            if (data.hasMore) {
+              resultsHtml += `<button class="page-btn next-btn" data-page="${currentPage + 1}">Next →</button>`;
+            } else {
+              resultsHtml += `<button class="page-btn next-btn" disabled>Next →</button>`;
+            }
+            
+            resultsHtml += `</div>`;
+          }
+          
+          searchResults.innerHTML = resultsHtml;
+          
+          // Add event listeners to pagination buttons
+          document.querySelectorAll('.page-btn').forEach(button => {
+            button.addEventListener('click', function() {
+              const page = this.getAttribute('data-page');
+              document.getElementById('currentPage').value = page;
+              // Re-run the search with the new page
+              performSearch();
+            });
+          });
+        })
+        .catch(error => {
+          console.error('Search error:', error);
+          searchResults.innerHTML = '<p class="error">An error occurred while searching.</p>';
+        });
+      }
+      
+      // Helper function to escape HTML in snippets
+      function escapeHtml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+    });
+  </script>
+</body>
+</html>

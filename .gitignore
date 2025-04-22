@@ -27,3 +27,5 @@ out/
 # Recordings - you may want to track some example recordings but exclude most
 public/casts/*
 !public/casts/example.cast
+
+index.db
