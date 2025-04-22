@@ -13,10 +13,10 @@ const db = require('./db');
 function escapeQuery(query) {
   if (!query) return query;
   
-  // Escape special FTS5 characters: " ^ : * ( ) & | -
-  return query.replace(/[\"\^\:\*\(\)\&\|\-]/g, (match) => {
-    return `"${match}"`;
-  });
+  // For FTS5, the safest approach is to wrap the entire query in double quotes
+  // This treats the term as literal text instead of a query with operators
+  // Double quotes within the query need to be escaped as double-double quotes
+  return `"${query.replace(/"/g, '""')}"`;
 }
 
 /**
