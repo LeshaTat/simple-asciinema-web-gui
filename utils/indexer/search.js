@@ -5,6 +5,21 @@
 const db = require('./db');
 
 /**
+ * Escape special FTS5 characters in search query
+ * 
+ * @param {string} query - The raw search query
+ * @returns {string} - The escaped query
+ */
+function escapeQuery(query) {
+  if (!query) return query;
+  
+  // Escape special FTS5 characters: " ^ : * ( ) & | -
+  return query.replace(/[\"\^\:\*\(\)\&\|\-]/g, (match) => {
+    return `"${match}"`;
+  });
+}
+
+/**
  * Search cast content in the database
  * 
  * @param {string} query - Search query text
@@ -33,9 +48,12 @@ async function searchCasts(query, options = {}) {
     // Open database
     database = db.getDatabase();
     
+    // Escape special characters in the query for FTS5
+    const escapedQuery = escapeQuery(query);
+    
     // Build the WHERE clause conditions
     const whereConditions = ['c.content MATCH ?', 'i.completed = 1'];
-    const params = [query];
+    const params = [escapedQuery];
     
     // Add tag filtering if provided
     if (tags.length > 0) {
@@ -154,7 +172,9 @@ async function searchCasts(query, options = {}) {
     };
   } catch (err) {
     console.error('Search error:', err);
-    return { results: [], total: 0 };
+    console.error('Original query:', query);
+    console.error('Escaped query:', escapedQuery);
+    return { results: [], total: 0, error: err.message };
   } finally {
     // Always close the database connection
     if (database) {

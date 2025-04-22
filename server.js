@@ -325,7 +325,13 @@ app.post('/api/search', async (req, res) => {
       timeWindow: timeWindow || 10 // Default to 10 minutes if not specified
     };
     
-    const { results, total } = await searchCasts(query, options);
+    const { results, total, error } = await searchCasts(query, options);
+    
+    // Check for search errors
+    if (error) {
+      console.error('Search returned an error:', error);
+      return res.status(500).json({ error: `Search error: ${error}` });
+    }
     
     // Format results with additional contextual information
     const formattedResults = results.map(result => {
