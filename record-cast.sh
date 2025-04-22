@@ -34,3 +34,6 @@ fi
 # (but not the one we just created, as it's the newest)
 echo "Running maintenance on older recordings..."
 npm --prefix "$(dirname "$0")" run maintain
+
+echo "Running indexing..."
+npm --prefix "$(dirname "$0")" run index
