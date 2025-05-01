@@ -1,4 +1,12 @@
 #!/bin/bash
+LOCKFILE="/tmp/asciinema_rec.lock"
+if [ -f "$LOCKFILE" ]; then
+  echo "Recording already in progress. Exiting."
+  exit 1
+fi
+
+trap 'rm -f "$LOCKFILE"' EXIT
+touch "$LOCKFILE"
 
 # Get all arguments as tags
 TAGS="$@"
