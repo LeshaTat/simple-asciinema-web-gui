@@ -9,4 +9,8 @@ const CASTS_DIR = process.env.CASTS_DIR
 
 const ZIP_DIR = path.join(CASTS_DIR, 'zip');
 
-module.exports = { CASTS_DIR, ZIP_DIR };
+const DB_PATH = process.env.INDEX_DB_PATH
+  ? path.resolve(process.env.INDEX_DB_PATH)
+  : path.join(__dirname, '..', 'index.db');
+
+module.exports = { CASTS_DIR, ZIP_DIR, DB_PATH };

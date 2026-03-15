@@ -3,11 +3,7 @@
  */
 
 const Database = require('better-sqlite3');
-const path = require('path');
-
-// Path constants
-const CASTS_DIR = path.join(__dirname, '../..', 'public', 'casts');
-const DB_PATH = path.join(__dirname, '../..', 'index.db');
+const { DB_PATH } = require('../config');
 
 /**
  * Initialize the database with necessary tables
