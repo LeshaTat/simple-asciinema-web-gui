@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "maintain": "node utils/maintain-casts.js",
-    "index": "node utils/index-casts.js"
+    "index": "node utils/index-casts.js",
+    "give-me-dirs": "node test-config.js"
   },
   "keywords": [
     "asciinema",
@@ -22,6 +23,7 @@
     "@fontsource/fira-code": "^5.2.5",
     "asciinema-player": "^3.10.0",
     "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^5.1.0"
   },

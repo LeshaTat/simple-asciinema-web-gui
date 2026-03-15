@@ -4,6 +4,7 @@ const path = require('path');
 const { promisify } = require('util');
 const { parseFilenameDate } = require('./utils/parseFilename');
 const { searchCasts, getIndexStats } = require('./utils/indexer');
+const { CASTS_DIR, ZIP_DIR } = require('./utils/config');
 
 const readFileAsync = promisify(fs.readFile);
 const readdirAsync = promisify(fs.readdir);
@@ -12,8 +13,6 @@ const accessAsync = promisify(fs.access);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const CASTS_DIR = path.join(__dirname, 'public', 'casts');
-const ZIP_DIR = path.join(CASTS_DIR, 'zip');
 
 // Set view engine
 app.set('view engine', 'ejs');

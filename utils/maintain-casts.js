@@ -26,6 +26,7 @@ const path    = require('path');
 const zlib    = require('zlib');
 const { promisify } = require('util');
 const { pipeline }  = require('stream');
+const { CASTS_DIR, ZIP_DIR } = require('./config');
 
 const readFileAsync  = promisify(fs.readFile);
 const readdirAsync   = promisify(fs.readdir);
@@ -34,12 +35,6 @@ const mkdirAsync     = promisify(fs.mkdir);
 const accessAsync    = promisify(fs.access);
 const renameAsync    = promisify(fs.rename);
 const pipelineAsync  = promisify(pipeline);
-
-const args     = process.argv.slice(2);
-const getArg   = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
-
-const CASTS_DIR = getArg('--casts-dir') || path.join(__dirname, '..', 'public', 'casts');
-const ZIP_DIR   = path.join(CASTS_DIR, 'zip');
 
 // ---------------------------------------------------------------------------
 // Duration extraction — v2 and v3

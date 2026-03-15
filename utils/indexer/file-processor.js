@@ -7,16 +7,13 @@ const path = require('path');
 const zlib = require('zlib');
 const { promisify } = require('util');
 const { parseFilenameDate } = require('../parseFilename');
+const { CASTS_DIR, ZIP_DIR } = require('../config');
 
 // Convert callbacks to promises
 const readFileAsync = promisify(fs.readFile);
 const readdirAsync = promisify(fs.readdir);
 const statAsync = promisify(fs.stat);
 const gunzipAsync = promisify(zlib.gunzip);
-
-// Path constants
-const CASTS_DIR = path.join(__dirname, '../..', 'public', 'casts');
-const ZIP_DIR = path.join(CASTS_DIR, 'zip');
 
 /**
  * Strip ANSI color codes from text
