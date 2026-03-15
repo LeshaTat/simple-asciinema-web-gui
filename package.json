@@ -20,7 +20,7 @@
   "description": "Self-hosted asciinema player web app",
   "dependencies": {
     "@fontsource/fira-code": "^5.2.5",
-    "asciinema-player": "^3.9.0",
+    "asciinema-player": "^3.10.0",
     "better-sqlite3": "^11.9.1",
     "ejs": "^3.1.10",
     "express": "^5.1.0"
